@@ -5,17 +5,20 @@ int32_t parse_websocket_request(const char *s_req, ws_req_t *ws_req) {
 	if (!s_req || !ws_req) {
 		return -1;
 	}
-	int len = strlen(s_req) + 1;
-	char tmp[len];
+	int len = strlen(s_req);
+	char tmp[len + 1];
+	tmp[len] = 0;
 	memcpy(tmp, s_req, len);
 
-	char *dilim = "\r\n";
+	char *delim = "\r\n";
 	char *p = NULL, *q = NULL;
 
-	p = strtok(tmp, dilim);
+	p = strtok(tmp, delim);
 	if (p) {
+		//printf("%s\n", p);
 		ws_req->req = p;
-		while (p = strtok(NULL, dilim)) {
+		while (p = strtok(NULL, delim)) {
+			//printf("%s\n", p);
 			if ((q = strstr(p, ":")) != NULL) {
 				*q = '\0';
 				if (strcasecmp(p, "Connection") == 0) {
@@ -84,19 +87,6 @@ void print_websocket_request(const ws_req_t *ws_req) {
 }
 
 
-static string generate_key(const string &key) {
-	//sha-1
-	string tmp = key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
-	unsigned char md[20] = {0};
-	SHA1((const unsigned char*)tmp.c_str(), tmp.length(), md);
-
-	//base64 encode
-	string res = base64_encode(md, 20);
-
-	return res;
-}
-
-
 string generate_websocket_response(const ws_req_t *ws_req) {
 	string resp;
 	resp += "HTTP/1.1 101 WebSocket Protocol HandShake\r\n";
@@ -109,17 +99,41 @@ string generate_websocket_response(const ws_req_t *ws_req) {
 }
 
 
-int32_t read_fin_opcode_mask_payloadlen(const char *buf, message_frame_header_t *header) {
-	if (!buf || !header) {
+string generate_key(const string &key) {
+	//sha-1
+	string tmp = key + "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+	unsigned char md[20] = {0};
+	SHA1((const unsigned char*)tmp.c_str(), tmp.length(), md);
+
+	//base64 encode
+	string res = base64_encode(md, 20);
+
+	return res;
+}
+
+
+int32_t parse_frame_header(const char *buf, frame_t *frame) {
+	if (!buf || !frame) {
 		return -1;
 	}
 	unsigned char c1 = *buf;
 	unsigned char c2 = *(buf + 1);
-	header->fin = (c1 >> 7) & 0xff;
-	header->opcode = c1 & 0x0f;
-	header->mask = (c2 >> 7) & 0xff;
-	header->payload_len = c2 & 0x7f;
+	frame->fin = (c1 >> 7) & 0xff;
+	frame->opcode = c1 & 0x0f;
+	frame->mask = (c2 >> 7) & 0xff;
+	frame->payload_len = c2 & 0x7f;
 	return 0;
+}
+
+
+int32_t unmask_payload_data(frame_t *frame) {
+	if (frame && frame->payload_data && frame->payload_len > 0) {
+		for (int32_t i = 0; i < frame->payload_len; ++i) {
+			*(frame->payload_data + i) = *(frame->payload_data + i) ^ *(frame->masking_key + i % 4);
+		}
+		return 0;
+	}
+	return -1;
 }
 
 
@@ -134,53 +148,126 @@ int32_t unmask_payload_data(const char *masking_key, char *payload_data, uint32_
 }
 
 
-int32_t generate_message_frame(const char *payload_data, uint32_t payload_len, char **message_frame, uint32_t *message_frame_len) {
-	if (!payload_data) {
-		payload_len = 0;
-	}
-	if (payload_len == 0) {
-		*message_frame = NULL;
-		*message_frame_len = 0;
-		return 0;
+frame_buffer_t *generate_frame_buffer(const frame_t *frame) {
+	if (!frame) {
+		return NULL;
 	}
 
+	if (frame->fin > 1) {
+		return NULL;
+	}
+
+	if (frame->opcode > 0xf) {
+		return NULL;
+	}
+
+	if (frame->mask > 1) {
+		return NULL;
+	}
+
+	if (frame->payload_data != NULL && frame->payload_len == 0) {
+		return NULL;
+	}
+
+	if (frame->payload_data == NULL && frame->payload_len != 0) {
+		return NULL;
+	}
+
+	frame_buffer_t *fb = NULL;
 	char *p = NULL;
-	unsigned char c1 = 0x81; //fin = 1, opcode = 1
+	unsigned char c1 = 0x00;
 	unsigned char c2 = 0x00; //mask = 0
+	c1 = c1 | (frame->fin << 7); //set fin
+	c1 = c1 | frame->opcode; //set opcode
+	c2 = c2 | (frame->mask << 7); //set mask
 
-	if (payload_len <= 125) {
-		p = new char[2 + payload_len];
-		c2 = payload_len;
-		//fill
-		*p = c1;
-		*(p + 1) = c2;
-		memcpy(p + 2, payload_data, payload_len);
-		*message_frame = p;
-		*message_frame_len = 2 + payload_len;
-	} else if (payload_len >= 126 && payload_len <= 65535) {
-		p = new char[4 + payload_len];
-		c2 = 126;
-		//fill
-		*p = c1;
-		*(p + 1) = c2;
-		uint16_t tmplen = payload_len;
-		tmplen = myhtons(tmplen);
-		memcpy(p + 2, &tmplen, 2);
-		memcpy(p + 4, payload_data, payload_len);
-		*message_frame = p;
-		*message_frame_len = 4 + payload_len;
-	} else if (payload_len >= 65536) {
-		p = new char[10 + payload_len];
-		c2 = 127;
-		//fill
-		*p = c1;
-		*(p + 1) = c2;
-		uint64_t tmplen = payload_len;
-		tmplen = myhtonll(tmplen);
-		memcpy(p + 2, &tmplen, 8);
-		memcpy(p + 10, payload_data, payload_len);
-		*message_frame  = p;
-		*message_frame_len = 10 + payload_len;
+	if (frame->payload_len == 0) {
+		if (frame->mask == 0) {
+			p = new char[2];
+			*p = c1;
+			*(p + 1) = c2;
+			fb = frame_buffer_new();
+			fb->data = p;
+			fb->len = 2;
+		} else {
+			p = new char[2 + 4];
+			*p = c1;
+			*(p + 1) = c2;
+			memcpy(p + 2, frame->masking_key, 4);
+			fb = frame_buffer_new();
+			fb->data = p;
+			fb->len = 2 + 4;
+		}
+
+	} else if (frame->payload_data && frame->payload_len <= 125) {
+		if (frame->mask == 0) {
+			p = new char[2 + frame->payload_len];
+			*p = c1;
+			*(p + 1) = c2 + frame->payload_len;
+			memcpy(p + 2, frame->payload_data, frame->payload_len);
+			fb = frame_buffer_new();
+			fb->data = p;
+			fb->len = 2 + frame->payload_len;
+		} else {
+			p = new char[2 + 4 + frame->payload_len];
+			*p = c1;
+			*(p + 1) = c2 + frame->payload_len;
+			memcpy(p + 2, frame->masking_key, 4);
+			memcpy(p + 6, frame->payload_data, frame->payload_len);
+			fb = frame_buffer_new();
+			fb->data = p;
+			fb->len = 2 + 4 + frame->payload_len;
+		}
+
+	} else if (frame->payload_data && frame->payload_len >= 126 && frame->payload_len <= 65535) {
+		if (frame->mask == 0) {
+			p = new char[4 + frame->payload_len];
+			*p = c1;
+			*(p + 1) = c2 + 126;
+			uint16_t tmplen = myhtons((uint16_t)frame->payload_len);
+			memcpy(p + 2, &tmplen, 2);
+			memcpy(p + 4, frame->payload_data, frame->payload_len);
+			fb = frame_buffer_new();
+			fb->data = p;
+			fb->len = 4 + frame->payload_len;
+		} else {
+			p = new char[4 + 4 + frame->payload_len];
+			*p = c1;
+			*(p + 1) = c2 + 126;
+			uint16_t tmplen = myhtons((uint16_t)frame->payload_len);
+			memcpy(p + 2, &tmplen, 2);
+			memcpy(p + 4, frame->masking_key, 4);
+			memcpy(p + 8, frame->payload_data, frame->payload_len);
+			fb = frame_buffer_new();
+			fb->data = p;
+			fb->len = 4 + 4 + frame->payload_len;
+		}
+
+	} else if (frame->payload_data && frame->payload_len >= 65536) {
+		if (frame->mask == 0) {
+			p = new char[10 + frame->payload_len];
+			*p = c1;
+			*(p + 1) = c2 + 127;
+			uint64_t tmplen = myhtonll(frame->payload_len);
+			memcpy(p + 2, &tmplen, 8);
+			memcpy(p + 10, frame->payload_data, frame->payload_len);
+			fb = frame_buffer_new();
+			fb->data = p;
+			fb->len = 10 + frame->payload_len;
+		} else {
+			p = new char[10 + 4 + frame->payload_len];
+			*p = c1;
+			*(p + 1) = c2 + 127;
+			uint64_t tmplen = myhtonll(frame->payload_len);
+			memcpy(p + 2, &tmplen, 8);
+			memcpy(p + 10, frame->masking_key, 4);
+			memcpy(p + 14, frame->payload_data, frame->payload_len);
+			fb = frame_buffer_new();
+			fb->data = p;
+			fb->len = 10 + 4 + frame->payload_len;
+		}
+
 	}
-	return 0;
+
+	return fb;
 }

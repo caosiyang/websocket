@@ -4,16 +4,11 @@
 			var host = "ws://122.70.141.32:10086";
 			var ws;
 			var b_connect = false;
-			
+
 			function connect() {
 				if (!b_connect) {
-					//try {
 						ws = new WebSocket(host);
-					//} cache (ex) {
-						//alert("connect failed");
-						//return;
-					//}
-					ws.onopen = function(evt) {
+						ws.onopen = function(evt) {
 						b_connect = true;
 						document.getElementById('connect_button').value = 'disconnect';
 						chat_content_append("connect to server done");
@@ -27,13 +22,10 @@
 						chat_content_append(evt.data);
 					};
 					ws.onerror = function(evt) {
-						alert("haha");
+						alert("error");
 					};
 				} else {
 					ws.close();
-					b_connect = false;
-					document.getElementById('connect_button').value = 'connect';
-					chat_content_append("disconnected");
 				}
 			}
 			
@@ -47,13 +39,24 @@
 						var message = document.getElementById('username').value + ": " + document.getElementById('chat_input').value;
 						ws.send(message);
 						document.getElementById('chat_input').value = '';
-						//chat_content_append(message);
+						chat_content_append(message);
 					}
 				} else {
 					chat_content_append("please click 'connect' button to connect to the webchat server");
 				}
 			}
-			
+
+			function login() {
+				if (b_connect) {
+					var message = "command=login\r\nuid=123456\r\nencpass=abcdef\r\nroomid=1001\r\n";
+					message = message.length.toString() + "\r\n" + message;
+					ws.send(message);
+				} else {
+					chat_content_append("please click 'connect' button to connect to the webchat server");
+				}
+
+			}
+
 			function chat_content_append(line) {
 				var chat_area = document.getElementById('chat_content');
 				chat_area.value += line + "\n";
@@ -83,5 +86,6 @@
 		Input:
 		<input type='text' id='chat_input' />
 		<input type='button' value='send' onclick='send()' />
+		<input type='button' value='login' onclick='login()' />
 	</body>
 </html>

@@ -132,8 +132,8 @@
  * with the next probe.
  */
 
-#ifndef _EVENT2_DNS_H_
-#define _EVENT2_DNS_H_
+#ifndef EVENT2_DNS_H_INCLUDED_
+#define EVENT2_DNS_H_INCLUDED_
 
 #ifdef __cplusplus
 extern "C" {
@@ -450,7 +450,7 @@ int evdns_base_load_hosts(struct evdns_base *base, const char *hosts_fname);
   @return 0 if successful, or -1 if an error occurred
   @see evdns_resolv_conf_parse()
  */
-#ifdef WIN32
+#ifdef _WIN32
 int evdns_base_config_windows_nameservers(struct evdns_base *);
 #define EVDNS_BASE_CONFIG_WINDOWS_NAMESERVERS_IMPLEMENTED
 #endif
@@ -601,7 +601,7 @@ struct sockaddr;
 /**
     Get the address that made a DNS request.
  */
-int evdns_server_request_get_requesting_addr(struct evdns_server_request *_req, struct sockaddr *sa, int addr_len);
+int evdns_server_request_get_requesting_addr(struct evdns_server_request *req, struct sockaddr *sa, int addr_len);
 
 /** Callback for evdns_getaddrinfo. */
 typedef void (*evdns_getaddrinfo_cb)(int result, struct evutil_addrinfo *res, void *arg);
@@ -640,4 +640,4 @@ void evdns_getaddrinfo_cancel(struct evdns_getaddrinfo_request *req);
 }
 #endif
 
-#endif  /* !_EVENT2_DNS_H_ */
+#endif  /* !EVENT2_DNS_H_INCLUDED_ */
