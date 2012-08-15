@@ -1,0 +1,91 @@
+<html>
+	<head>
+		<script type="text/javascript">
+			var host = "ws://122.70.141.32:10086";
+			var ws;
+			var b_connect = false;
+
+			function connect() {
+				if (!b_connect) {
+						ws = new WebSocket(host);
+						ws.onopen = function(evt) {
+						b_connect = true;
+						document.getElementById('connect_button').value = 'disconnect';
+						chat_content_append("connect to server done");
+					};
+					ws.onclose = function(evt) {
+						b_connect = false;
+						document.getElementById('connect_button').value = 'connect';
+						chat_content_append("disconnected");
+					};
+					ws.onmessage = function(evt) {
+						chat_content_append(evt.data);
+					};
+					ws.onerror = function(evt) {
+						alert("error");
+					};
+				} else {
+					ws.close();
+				}
+			}
+			
+			function send() {
+				if (b_connect) {
+					if (document.getElementById('username').value == '') {
+						chat_content_append("please input your name");
+						return;
+					}
+					if (document.getElementById('chat_input').value != '') {
+						var message = document.getElementById('username').value + ": " + document.getElementById('chat_input').value;
+						ws.send(message);
+						document.getElementById('chat_input').value = '';
+						chat_content_append(message);
+					}
+				} else {
+					chat_content_append("please click 'connect' button to connect to the webchat server");
+				}
+			}
+
+			function login() {
+				if (b_connect) {
+					var message = "command=login\r\nuid=123456\r\nencpass=abcdef\r\nroomid=1001\r\n";
+					message = message.length.toString() + "\r\n" + message;
+					ws.send(message);
+				} else {
+					chat_content_append("please click 'connect' button to connect to the webchat server");
+				}
+
+			}
+
+			function chat_content_append(line) {
+				var chat_area = document.getElementById('chat_content');
+				chat_area.value += line + "\n";
+				chat_area.scrollTop = chat_area.scrollHeight;
+			}
+			
+			//function document.onkeydown() {
+				//if (event.keyCode == 13) {
+					//alert("ahha");
+				//}
+			//}
+		</script>
+	</head>
+	<body>
+		<h1>WebSocket Demo</h1>
+		Server:
+		<input type='text' value='122.70.141.32:10086' />
+		<input type='button' id='connect_button' value='connect' onclick='connect()' />
+		<br />
+		Message:
+		<br/>
+		<textarea rows='20' cols='100' id='chat_content' readonly></textarea>
+		<br />
+		Username:
+		<input type='text' id='username' />
+		<br />
+		Input:
+		<input type='text' id='chat_input' />
+		<input type='button' value='send' onclick='send()' />
+		<input type='button' value='login' onclick='login()' />
+	</body>
+</html>
