@@ -1,4 +1,4 @@
 websocket
 =========
 
-websocket server on C++ &amp; libevent
+WebSocket server on C++ &amp; libevent
