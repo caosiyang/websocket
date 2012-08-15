@@ -19,10 +19,10 @@ using namespace std;
 
 
 typedef void(*websocket_cb)(void*);
-typedef void(*ws_cb)(void*);
+
 
 typedef struct {
-	ws_cb cb;
+	websocket_cb cb;
 	void *cbarg;
 } ws_cb_unit;
 
@@ -30,6 +30,7 @@ typedef struct {
 typedef struct websocket_connection {
 	struct bufferevent *bev;
 	string ws_req_str;
+	string ws_resp_str;
 	enum Step step;
 	uint32_t ntoread;
 
@@ -38,7 +39,8 @@ typedef struct websocket_connection {
 	ws_cb_unit handshake_cb_unit;
 	ws_cb_unit frame_send_cb_unit;
 	ws_cb_unit frame_recv_cb_unit;
-	ws_cb_unit conn_close_cb_unit;
+	ws_cb_unit write_cb_unit;
+	ws_cb_unit close_cb_unit;
 	//ws_cb_unit message_send_cb_unit;
 	//ws_cb_unit message_recv_cb_unit;
 } ws_conn_t;
@@ -48,9 +50,10 @@ enum CBTYPE {
 	HANDSHAKE,
 	FRAME_SEND,
 	FRAME_RECV,
-	CONN_CLOSE,
 	MESSAGE_SEND,
-	MESSAGE_RECV
+	MESSAGE_RECV,
+	WRITE,
+	CLOSE
 };
 
 
@@ -64,6 +67,10 @@ void ws_conn_destroy(ws_conn_t *conn);
 
 //set callback
 void ws_conn_setcb(ws_conn_t *conn, enum CBTYPE cbtype, websocket_cb cb, void *cbarg);
+
+
+//websocket serve loop
+void ws_serve_loop(ws_conn_t *conn);
 
 
 //accept the websocket request
@@ -98,8 +105,12 @@ void request_read_cb(struct bufferevent *bev, void *ctx);
 void frame_read_cb(struct bufferevent *bev, void *ctx);
 
 
+//websocket write callback
+void write_cb(struct bufferevent *bev, void *ctx);
+
+
 //connection close callback
-void conn_close_cb(struct bufferevent *bev, short what, void *ctx);
+void close_cb(struct bufferevent *bev, short what, void *ctx);
 
 
 //read the websocket message

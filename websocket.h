@@ -82,9 +82,4 @@ int32_t unmask_payload_data(frame_t *frame);
 int32_t unmask_payload_data(const char *masking_key, char *payload_data, uint32_t payload_len);
 
 
-
-//generate frame buffer
-frame_buffer_t *generate_frame_buffer(const frame_t *frame);
-
-
 #endif

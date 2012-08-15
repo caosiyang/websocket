@@ -3,3 +3,5 @@ tags
 *.ro
 chat_debug
 chat_release
+libwebsocket/include/*
+libwebsocket/lib/*

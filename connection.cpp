@@ -7,17 +7,20 @@ ws_conn_t *ws_conn_create() {
 	if (conn) {
 		conn->bev = NULL;
 		conn->ws_req_str = "";
+		conn->ws_resp_str = "";
 		conn->step = ZERO;
 		conn->ntoread = 0;
 		conn->frame = frame_new();
 		conn->handshake_cb_unit.cb = NULL;
 		conn->handshake_cb_unit.cbarg = NULL;
 		conn->frame_send_cb_unit.cb = NULL;
-		conn->frame_send_cb_unit.cb = NULL;
+		conn->frame_send_cb_unit.cbarg = NULL;
 		conn->frame_recv_cb_unit.cb = NULL;
 		conn->frame_recv_cb_unit.cbarg = NULL;
-		conn->conn_close_cb_unit.cbarg = NULL;
-		conn->conn_close_cb_unit.cbarg = NULL;
+		conn->write_cb_unit.cb = NULL;
+		conn->write_cb_unit.cbarg = NULL;
+		conn->close_cb_unit.cb = NULL;
+		conn->close_cb_unit.cbarg = NULL;
 	}
 	return conn;
 }
@@ -26,9 +29,6 @@ ws_conn_t *ws_conn_create() {
 //destroy a websocket connection
 void ws_conn_destroy(ws_conn_t *conn) {
 	if (conn) {
-		if (conn->bev) {
-			bufferevent_free(conn->bev);
-		}
 		if (conn->frame) {
 			frame_free(conn->frame);
 		}
@@ -37,13 +37,24 @@ void ws_conn_destroy(ws_conn_t *conn) {
 }
 
 
+//websocket serve loop
+void ws_serve_loop(ws_conn_t *conn) {
+	accept_websocket_request(conn);
+}
+
+
 //read the websocket request
 void accept_websocket_request(ws_conn_t *conn) {
 	LOG("%s", __func__);
 	if (conn && conn->bev) {
-		//bufferevent_getcb(conn->bev, &(conn->readcb), &(conn->writecb), &(conn->eventcb), &(conn->cbarg));
-		bufferevent_setcb(conn->bev, request_read_cb, NULL, conn_close_cb, conn); 
+		//void(*readcb)(struct bufferevent*, void*) = NULL;
+		//void(*writecb)(struct bufferevent*, void*) = NULL;
+		//void(*eventcb)(struct bufferevent*, short, void*) = NULL;
+		//void *cbarg = NULL;
+		//bufferevent_getcb(conn->bev, &readcb, &writecb, &eventcb, &cbarg);
+		bufferevent_setcb(conn->bev, request_read_cb, write_cb, close_cb, conn); 
 		bufferevent_setwatermark(conn->bev, EV_READ, 1, 1);
+		bufferevent_setwatermark(conn->bev, EV_WRITE, 0, 0);
 		bufferevent_enable(conn->bev, EV_READ | EV_WRITE);
 	}
 }
@@ -53,11 +64,9 @@ void respond_websocket_request(ws_conn_t *conn) {
 	//handshake
 	ws_req_t ws_req;
 	parse_websocket_request(conn->ws_req_str.c_str(), &ws_req);
-	string resp = generate_websocket_response(&ws_req);
-	bufferevent_write(conn->bev, resp.c_str(), resp.length());
+	conn->ws_resp_str = generate_websocket_response(&ws_req);
+	bufferevent_write(conn->bev, conn->ws_resp_str.c_str(), conn->ws_resp_str.length());
 	bufferevent_disable(conn->bev, EV_READ);
-	LOG("%s", conn->ws_req_str.c_str());
-	LOG("%s", resp.c_str());
 }
 
 
@@ -81,6 +90,8 @@ void request_read_cb(struct bufferevent *bev, void *ctx) {
 		} else {
 			LOG("handshake_cb == NULL");
 			respond_websocket_request(conn);
+			LOG("%s", conn->ws_req_str.c_str());
+			LOG("%s", conn->ws_resp_str.c_str());
 		}
 
 		//frame recv loop
@@ -102,7 +113,7 @@ int32_t send_a_frame(ws_conn_t *conn, const frame_buffer_t *fb) {
 void frame_recv_loop(ws_conn_t *conn) {
 	conn->step = ONE;
 	conn->ntoread = 2;
-	bufferevent_setcb(conn->bev, frame_read_cb, NULL, conn_close_cb, conn);
+	bufferevent_setcb(conn->bev, frame_read_cb, write_cb, close_cb, conn);
 	bufferevent_setwatermark(conn->bev, EV_READ, conn->ntoread, conn->ntoread);
 	bufferevent_enable(conn->bev, EV_READ);
 }
@@ -184,16 +195,10 @@ void frame_read_cb(struct bufferevent *bev, void *ctx) {
 				}
 				if (conn->frame->fin == 1 && conn->frame->opcode == 0x8) {
 					//0x8 denotes a connection close
-					frame_t *f = frame_new();
-					f->fin = 1;
-					f->opcode = 8;
-					f->mask = 0;
-					f->payload_len = 0;
-					frame_buffer_t *fb = generate_frame_buffer(f);
+					frame_buffer_t *fb = frame_buffer_new(1, 8, 0, NULL);
 					send_a_frame(conn, fb);
 					LOG("send a close frame");
 					frame_buffer_free(fb);
-					frame_free(f);
 
 #if 0
 					if (conn->conn_close_cb_unit.cb) {
@@ -242,16 +247,10 @@ void frame_read_cb(struct bufferevent *bev, void *ctx) {
 			/*recv a whole frame*/
 			if (conn->frame->fin == 1 && conn->frame->opcode == 0x8) {
 				//0x8 denotes a connection close
-				frame_t *f = frame_new();
-				f->fin = 1;
-				f->opcode = 8;
-				f->mask = 0;
-				f->payload_len = 0;
-				frame_buffer_t *fb = generate_frame_buffer(f);
+				frame_buffer_t *fb = frame_buffer_new(1, 8, 0, NULL);
 				send_a_frame(conn, fb);
 				LOG("send a close frame");
 				frame_buffer_free(fb);
-				frame_free(f);
 
 #if 0
 				if (conn->conn_close_cb_unit.cb) {
@@ -324,9 +323,13 @@ void ws_conn_setcb(ws_conn_t *conn, enum CBTYPE cbtype, websocket_cb cb, void *c
 			conn->message_recv_cb_unit.cbarg = cbarg;
 			break;
 #endif
-		case CONN_CLOSE:
-			conn->conn_close_cb_unit.cb = cb;
-			conn->conn_close_cb_unit.cbarg = cbarg;
+		case WRITE:
+			conn->write_cb_unit.cb = cb;
+			conn->write_cb_unit.cbarg = cbarg;
+			break;
+		case CLOSE:
+			conn->close_cb_unit.cb = cb;
+			conn->close_cb_unit.cbarg = cbarg;
 			break;
 		default:
 			break;
@@ -335,11 +338,22 @@ void ws_conn_setcb(ws_conn_t *conn, enum CBTYPE cbtype, websocket_cb cb, void *c
 }
 
 
-void conn_close_cb(struct bufferevent *bev, short what, void *ctx) {
-	ws_conn_t * conn = (ws_conn_t*)ctx;
-	if (conn->conn_close_cb_unit.cb) {
-		websocket_cb cb = conn->conn_close_cb_unit.cb;
-		void *cbarg = conn->conn_close_cb_unit.cbarg;
+void write_cb(struct bufferevent *bev, void *ctx) {
+	ws_conn_t *conn = (ws_conn_t*)ctx;
+	if (conn->write_cb_unit.cb) {
+		websocket_cb cb = conn->write_cb_unit.cb;
+		void *cbarg = conn->write_cb_unit.cbarg;
+		cb(cbarg);
+	}
+}
+
+
+void close_cb(struct bufferevent *bev, short what, void *ctx) {
+	//LOG("%s", __func__);
+	ws_conn_t *conn = (ws_conn_t*)ctx;
+	if (conn->close_cb_unit.cb) {
+		websocket_cb cb = conn->close_cb_unit.cb;
+		void *cbarg = conn->close_cb_unit.cbarg;
 		cb(cbarg);
 	}
 }
