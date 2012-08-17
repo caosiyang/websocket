@@ -1,7 +1,24 @@
+<<<<<<< HEAD
 tags
 *.o
 *.ro
 chat_debug
 chat_release
+=======
+# Compiled Object files
+*.slo
+*.lo
+*.o
+
+# Compiled Dynamic libraries
+*.so
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+
+tags
+>>>>>>> 6f57ceeb8ca27264d80b3fc8bdc556ed6fe55546
 libwebsocket/include/*
 libwebsocket/lib/*
