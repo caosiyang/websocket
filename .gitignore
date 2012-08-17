@@ -1,10 +1,3 @@
-<<<<<<< HEAD
-tags
-*.o
-*.ro
-chat_debug
-chat_release
-=======
 # Compiled Object files
 *.slo
 *.lo
@@ -19,6 +12,8 @@ chat_release
 *.a
 
 tags
->>>>>>> 6f57ceeb8ca27264d80b3fc8bdc556ed6fe55546
+*.ro
+chat_debug
+chat_release
 libwebsocket/include/*
 libwebsocket/lib/*
