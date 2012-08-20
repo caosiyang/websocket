@@ -1,8 +1,9 @@
 /**
  *
  * filename: connection.h
- * summary:
+ * summary: websocket connection
  * author: caosiyang
+ * email: csy3228@gmail.com
  *
  */
 #ifndef CONNECTION_H
@@ -33,27 +34,22 @@ typedef struct websocket_connection {
 	string ws_resp_str;
 	enum Step step;
 	uint32_t ntoread;
-
 	frame_t *frame; //current frame
-
 	ws_cb_unit handshake_cb_unit;
-	ws_cb_unit frame_send_cb_unit;
 	ws_cb_unit frame_recv_cb_unit;
 	ws_cb_unit write_cb_unit;
 	ws_cb_unit close_cb_unit;
-	//ws_cb_unit message_send_cb_unit;
-	//ws_cb_unit message_recv_cb_unit;
+	ws_cb_unit ping_cb_unit;
 } ws_conn_t;
 
 
+//callback type
 enum CBTYPE {
 	HANDSHAKE,
-	FRAME_SEND,
 	FRAME_RECV,
-	MESSAGE_SEND,
-	MESSAGE_RECV,
 	WRITE,
-	CLOSE
+	CLOSE,
+	PING
 };
 
 
@@ -81,14 +77,6 @@ void accept_websocket_request(ws_conn_t *conn);
 void respond_websocket_request(ws_conn_t *conn);
 
 
-//send a message
-//void send_a_message(ws_conn_t *conn);
-
-
-//receive a message
-//void recv_a_message(ws_conn_t *conn);
-
-
 //send a frame
 int32_t send_a_frame(ws_conn_t *conn, const frame_buffer_t *fb);
 
@@ -111,10 +99,6 @@ void write_cb(struct bufferevent *bev, void *ctx);
 
 //connection close callback
 void close_cb(struct bufferevent *bev, short what, void *ctx);
-
-
-//read the websocket message
-//void read_websocket_message(struct bufferevent *bev, void *cbarg);
 
 
 #endif

@@ -59,27 +59,4 @@ frame_buffer_t *frame_buffer_new(const frame_t *frame);
 void frame_buffer_free(frame_buffer_t *fb);
 
 
-#if 0
-class FrameObject {
-public:
-	Frame();
-	Frame(const char *data, uint64_t len);
-	Frame(const frame_buffer_t *fb);
-	~Frame();
-
-	void SetFin(uint8_t fin);
-	uint8_t GetFin() const;
-	void SetOpcode(uint8_t opcode);
-	uint8_t GetOpcode() const;
-	void SetMask(uint8_t mask);
-	uint8_t GetMask() const;
-
-
-private:
-	frame_t *frame;
-	frame_buffer_t *fb;
-};
-#endif
-
-
 #endif

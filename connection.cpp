@@ -13,14 +13,14 @@ ws_conn_t *ws_conn_create() {
 		conn->frame = frame_new();
 		conn->handshake_cb_unit.cb = NULL;
 		conn->handshake_cb_unit.cbarg = NULL;
-		conn->frame_send_cb_unit.cb = NULL;
-		conn->frame_send_cb_unit.cbarg = NULL;
 		conn->frame_recv_cb_unit.cb = NULL;
 		conn->frame_recv_cb_unit.cbarg = NULL;
 		conn->write_cb_unit.cb = NULL;
 		conn->write_cb_unit.cbarg = NULL;
 		conn->close_cb_unit.cb = NULL;
 		conn->close_cb_unit.cbarg = NULL;
+		conn->ping_cb_unit.cb = NULL;
+		conn->ping_cb_unit.cbarg = NULL;
 	}
 	return conn;
 }
@@ -63,7 +63,9 @@ void accept_websocket_request(ws_conn_t *conn) {
 void respond_websocket_request(ws_conn_t *conn) {
 	//handshake
 	ws_req_t ws_req;
+	//parse request
 	parse_websocket_request(conn->ws_req_str.c_str(), &ws_req);
+	//generate response
 	conn->ws_resp_str = generate_websocket_response(&ws_req);
 	bufferevent_write(conn->bev, conn->ws_resp_str.c_str(), conn->ws_resp_str.length());
 	bufferevent_disable(conn->bev, EV_READ);
@@ -83,16 +85,14 @@ void request_read_cb(struct bufferevent *bev, void *ctx) {
 	//check if receive request completely
 	if (n >= 4 && conn->ws_req_str.substr(n - 4) == "\r\n\r\n") {
 		if (conn->handshake_cb_unit.cb) {
-			LOG("handshake_cb != NULL");
 			websocket_cb cb = conn->handshake_cb_unit.cb;
 			void *cbarg = conn->handshake_cb_unit.cbarg;
 			cb(cbarg);
-		} else {
-			LOG("handshake_cb == NULL");
-			respond_websocket_request(conn);
-			LOG("%s", conn->ws_req_str.c_str());
-			LOG("%s", conn->ws_resp_str.c_str());
 		}
+
+		respond_websocket_request(conn);
+		LOG("%s", conn->ws_req_str.c_str());
+		LOG("%s", conn->ws_resp_str.c_str());
 
 		//frame recv loop
 		frame_recv_loop(conn);
@@ -305,24 +305,10 @@ void ws_conn_setcb(ws_conn_t *conn, enum CBTYPE cbtype, websocket_cb cb, void *c
 			conn->handshake_cb_unit.cb = cb;
 			conn->handshake_cb_unit.cbarg = cbarg;
 			break;
-		case FRAME_SEND:
-			conn->frame_send_cb_unit.cb = cb;
-			conn->frame_send_cb_unit.cbarg = cbarg;
-			break;
 		case FRAME_RECV:
 			conn->frame_recv_cb_unit.cb = cb;
 			conn->frame_recv_cb_unit.cbarg = cbarg;
 			break;
-#if 0
-		case MESSAGE_SEND:
-			conn->message_send_cb_unit.cb = cb;
-			conn->message_send_cb_unit.cbarg = cbarg;
-			break;
-		case MESSAGE_RECV:
-			conn->message_recv_cb_unit.cb = cb;
-			conn->message_recv_cb_unit.cbarg = cbarg;
-			break;
-#endif
 		case WRITE:
 			conn->write_cb_unit.cb = cb;
 			conn->write_cb_unit.cbarg = cbarg;
@@ -330,6 +316,10 @@ void ws_conn_setcb(ws_conn_t *conn, enum CBTYPE cbtype, websocket_cb cb, void *c
 		case CLOSE:
 			conn->close_cb_unit.cb = cb;
 			conn->close_cb_unit.cbarg = cbarg;
+			break;
+		case PING:
+			conn->ping_cb_unit.cb = cb;
+			conn->ping_cb_unit.cbarg = cbarg;
 			break;
 		default:
 			break;
@@ -339,6 +329,7 @@ void ws_conn_setcb(ws_conn_t *conn, enum CBTYPE cbtype, websocket_cb cb, void *c
 
 
 void write_cb(struct bufferevent *bev, void *ctx) {
+	//LOG("%s", __func__);
 	ws_conn_t *conn = (ws_conn_t*)ctx;
 	if (conn->write_cb_unit.cb) {
 		websocket_cb cb = conn->write_cb_unit.cb;

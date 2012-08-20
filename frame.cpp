@@ -47,7 +47,7 @@ frame_buffer_t *frame_buffer_new(uint8_t fin, uint8_t opcode, uint64_t payload_l
 		return NULL;
 	}
 
-	uint8_t mask = 0; //not mask at server endpoint
+	uint8_t mask = 0; //must not mask at server endpoint
 	char masking_key[4] = {0}; //no need at server endpoint
 
 	char *p = NULL; //buffer
@@ -143,7 +143,6 @@ frame_buffer_t *frame_buffer_new(const frame_t *frame) {
 	if (!frame || frame->fin > 1 || frame->opcode > 0xf || frame->mask > 1) {
 		return NULL;
 	}
-
 	frame_buffer_t *fb = frame_buffer_new(frame->fin, frame->opcode, frame->payload_len, frame->payload_data);
 	return fb;
 }
