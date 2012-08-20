@@ -20,6 +20,14 @@ void frame_free(frame_t *frame) {
 }
 
 
+bool is_frame_valid(const frame_t *frame) {
+	if (frame && frame->fin <= 1 && frame->opcode <= 0xf && frame->mask == 1) {
+		return true;
+	}
+	return false;
+}
+
+
 #if 0
 int32_t frame_set(frame_t *frame, uint8_t fin, uint8_t opcode, uint64_t payload_len, const char *payload_data) {
 	if (!frame || fin > 1 || opcode > 0xf) {

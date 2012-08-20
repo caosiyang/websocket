@@ -33,7 +33,7 @@ typedef struct websocket_connection {
 	string ws_req_str;
 	string ws_resp_str;
 	enum Step step;
-	uint32_t ntoread;
+	uint64_t ntoread;
 	frame_t *frame; //current frame
 	ws_cb_unit handshake_cb_unit;
 	ws_cb_unit frame_recv_cb_unit;
@@ -78,7 +78,7 @@ void respond_websocket_request(ws_conn_t *conn);
 
 
 //send a frame
-int32_t send_a_frame(ws_conn_t *conn, const frame_buffer_t *fb);
+inline int32_t send_a_frame(ws_conn_t *conn, const frame_buffer_t *fb);
 
 
 //receive a frame
@@ -87,6 +87,10 @@ void frame_recv_loop(ws_conn_t *conn);
 
 //request read callback
 void request_read_cb(struct bufferevent *bev, void *ctx);
+
+
+//response write callback
+void response_write_cb(struct bufferevent *bev, void *ctx);
 
 
 //frame read callback

@@ -38,6 +38,9 @@ frame_t *frame_new();
 void frame_free(frame_t *frame);
 
 
+bool is_frame_valid(const frame_t *frame);
+
+
 #if 0
 int32_t frame_set(frame_t *frame,
 		uint8_t fin,

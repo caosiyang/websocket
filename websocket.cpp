@@ -89,12 +89,14 @@ void print_websocket_request(const ws_req_t *ws_req) {
 
 string generate_websocket_response(const ws_req_t *ws_req) {
 	string resp;
-	resp += "HTTP/1.1 101 WebSocket Protocol HandShake\r\n";
-	resp += "Connection: Upgrade\r\n";
-	resp += "Upgrade: WebSocket\r\n";
-	resp += "Server: WebChat Demo Server\r\n";
-	resp += "Sec-WebSocket-Accept: " + generate_key(ws_req->sec_websocket_key) + "\r\n";
-	resp += "\r\n";
+	if (ws_req) {
+		resp += "HTTP/1.1 101 WebSocket Protocol HandShake\r\n";
+		resp += "Connection: Upgrade\r\n";
+		resp += "Upgrade: WebSocket\r\n";
+		resp += "Server: WebChat Demo Server\r\n";
+		resp += "Sec-WebSocket-Accept: " + generate_key(ws_req->sec_websocket_key) + "\r\n";
+		resp += "\r\n";
+	}
 	return resp;
 }
 
