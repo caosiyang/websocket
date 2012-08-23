@@ -49,7 +49,7 @@ void listencb(struct evconnlistener *listener, evutil_socket_t clisockfd, struct
 	ws_conn_setcb(user->wscon, FRAME_RECV, frame_recv_cb, user);
 	ws_conn_setcb(user->wscon, CLOSE, user_disconnect_cb, user);
 
-	ws_serve_loop(user->wscon);
+	ws_serve_start(user->wscon);
 }
 
 

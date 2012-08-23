@@ -13,6 +13,9 @@
 using namespace std;
 
 
+#define LOG(format, args...) fprintf(stdout, format"\n", ##args)
+
+
 inline uint16_t myhtons(uint16_t n) {
 	return ((n & 0xff00) >> 8) | ((n & 0x00ff) << 8);
 }

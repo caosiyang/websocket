@@ -24,12 +24,9 @@ BIN = chat_release
 endif
 
 
-INCLUDE = -I./libevent/include \
-		  -I./libopenssl/include \
-		  -I../
-LIBRARY = -L./libevent/lib -levent \
-		  -L./libopenssl/lib -lcrypto -lssl \
-		  -lrt
+INCLUDE = -I../
+LIBRARY = -levent -lcrypto -lssl -lrt \
+		  -Wl,-rpath /usr/local/lib
 
 
 chat_debug: $(OBJS)

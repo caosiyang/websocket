@@ -16,9 +16,6 @@
 using namespace std;
 
 
-#define LOG(format, args...) fprintf(stdout, format"\n", ##args)
-
-
 typedef void(*websocket_cb)(void*);
 
 
@@ -53,32 +50,45 @@ enum CBTYPE {
 };
 
 
+//
+// following functions are for library-users
+//
 //create a websocket connection
-ws_conn_t *ws_conn_create();
+ws_conn_t *ws_conn_new();
 
 
 //destroy a websocket connection
-void ws_conn_destroy(ws_conn_t *conn);
+void ws_conn_free(ws_conn_t *conn);
 
 
 //set callback
+//MUST set: frame_read_cb, write_cb, close_cb
 void ws_conn_setcb(ws_conn_t *conn, enum CBTYPE cbtype, websocket_cb cb, void *cbarg);
 
 
-//websocket serve loop
-void ws_serve_loop(ws_conn_t *conn);
+//websocket serve start
+void ws_serve_start(ws_conn_t *conn);
 
 
+//websocket serve exit
+void ws_serve_exit(ws_conn_t *conn);
+
+
+//send a frame
+int32_t send_a_frame(ws_conn_t *conn, const frame_buffer_t *fb);
+
+
+
+
+//
+// following functions are for internal
+//
 //accept the websocket request
 void accept_websocket_request(ws_conn_t *conn);
 
 
 //respond the websocket request
 void respond_websocket_request(ws_conn_t *conn);
-
-
-//send a frame
-inline int32_t send_a_frame(ws_conn_t *conn, const frame_buffer_t *fb);
 
 
 //receive a frame

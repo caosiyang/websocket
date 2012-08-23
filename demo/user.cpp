@@ -8,7 +8,7 @@ user_t *user_create() {
 	user_t *user = new (nothrow) user_t;
 	if (user) {
 		user->id = 0;
-		user->wscon = ws_conn_create();
+		user->wscon = ws_conn_new();
 		user->msg = "";
 	}
 	return user;
@@ -18,7 +18,7 @@ user_t *user_create() {
 void user_destroy(user_t *user) {
 	if (user) {
 		if (user->wscon) {
-			ws_conn_destroy(user->wscon);
+			ws_conn_free(user->wscon);
 		}
 		delete user;
 	}

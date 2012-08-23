@@ -62,4 +62,7 @@ frame_buffer_t *frame_buffer_new(const frame_t *frame);
 void frame_buffer_free(frame_buffer_t *fb);
 
 
+void print_frame_info(const frame_buffer_t *fb);
+
+
 #endif

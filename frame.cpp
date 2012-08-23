@@ -164,3 +164,48 @@ void frame_buffer_free(frame_buffer_t *fb) {
 		delete fb;
 	}
 }
+
+
+void print_frame_info(const frame_buffer_t *fb) {
+	if (!fb || !fb->data) {
+		return;
+	}
+	LOG("--------------------");
+	char *p = fb->data;
+	uint8_t fin = 0, opcode = 0, mask = 0;
+	uint64_t payload_len = 0;
+	fin = (*(uint8_t*)p) >> 7;
+	opcode = (*(uint8_t*)p) & 0x0f;
+	mask = (*(uint8_t*)(p + 1)) >> 7;
+	payload_len = (*(uint8_t*)(p + 1)) & 0x7f;
+	char *tmp = NULL;
+	if (payload_len == 0) {
+	} else if (payload_len <= 125) {
+		tmp = new char[payload_len + 1];
+		tmp[payload_len] = 0;
+		memcpy(tmp, p + 2, payload_len);
+	} else if (payload_len == 126) {
+		LOG("126");
+		payload_len = myntohs(*(uint16_t*)(p + 2));
+		tmp = new char[payload_len + 1];
+		tmp[payload_len] = 0;
+		memcpy(tmp, p + 2 + 2, payload_len);
+	} else if (payload_len == 127) {
+		LOG("127");
+		payload_len = myntohll(*(uint64_t*)(p + 2));
+		tmp = new char[payload_len + 1];
+		tmp[payload_len] = 0;
+		memcpy(tmp, p + 2 + 8, payload_len);
+	}
+	LOG("fin = %lu", fin);
+	LOG("opcode = %lu", opcode);
+	LOG("mask = %lu", mask);
+	LOG("payload_len = %lu", payload_len);
+	if (tmp) {
+		LOG("payload = \n%s", tmp);
+		delete[] tmp;
+	} else {
+		LOG("payload = NULL");
+	}
+	LOG("--------------------");
+}
