@@ -9,6 +9,8 @@
 #ifndef WEBSOCKET_H
 #define WEBSOCKET_H
 
+#include "stdio.h"
+#include "string.h"
 #include "tools.h"
 #include "frame.h"
 #include "openssl/sha.h"

@@ -9,8 +9,9 @@
 #ifndef FRAME_H
 #define FRAME_H
 
-#include "tools.h"
+#include <string.h>
 #include <iostream>
+#include "tools.h"
 using namespace std;
 
 

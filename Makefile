@@ -50,6 +50,7 @@ clean:
 .PHONY: tmp
 tmp: $(OBJS)
 	g++ -o $(BIN) $^ $(LIBRARY)
+	mkdir -p libwebsocket/include libwebsocket/lib
 	cp -f $(LWS_INCLUDE) libwebsocket/include
 	ar cr $(LWS_LIB) $(LWS_LIB_OBJS)
 	mv -f $(LWS_LIB) libwebsocket/lib

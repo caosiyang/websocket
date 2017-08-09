@@ -9,10 +9,11 @@
 #ifndef CONNECTION_H
 #define CONNECTION_H
 
-#include "websocket.h"
+#include <stdlib.h>
+#include <iostream>
 #include <event2/event.h>
 #include <event2/bufferevent.h>
-#include <iostream>
+#include "websocket.h"
 using namespace std;
 
 

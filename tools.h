@@ -9,6 +9,8 @@
 #ifndef TOOLS_H
 #define TOOLS_H
 
+#include <stdio.h>
+#include <stdint.h>
 #include <iostream>
 using namespace std;
 

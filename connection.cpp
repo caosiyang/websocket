@@ -143,7 +143,7 @@ void response_write_cb(struct bufferevent *bev, void *ctx) {
 
 //send a frame
 inline int32_t send_a_frame(ws_conn_t *conn, const frame_buffer_t *fb) {
-	return bufferevent_write(conn->bev, fb->data, fb->len) == fb->len ? 0 : -1;
+	return bufferevent_write(conn->bev, fb->data, fb->len);
 }
 
 
