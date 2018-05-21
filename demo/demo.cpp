@@ -32,7 +32,6 @@ void user_disconnect(user_t *user) {
 void user_disconnect_cb(void *arg) {
 	LOG("%s", __func__);
 	user_t *user = (user_t*)arg;
-	bufferevent_free(user->wscon->bev);
 	user_disconnect(user);
 }
 

@@ -29,6 +29,10 @@ ws_conn_t *ws_conn_new() {
 //destroy a websocket connection
 void ws_conn_free(ws_conn_t *conn) {
 	if (conn) {
+        if (conn->bev) {
+            bufferevent_free(conn->bev);
+            conn->bev = NULL;
+        }
 		if (conn->frame) {
 			frame_free(conn->frame);
 			conn->frame = NULL;
