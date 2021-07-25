@@ -18,3 +18,4 @@ chat_release
 libwebsocket/include/*
 libwebsocket/lib/*
 /build_x64_vs2019_release_VCPKG
+/build_x64_linux_release_VCPKG
