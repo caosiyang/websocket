@@ -1,12 +1,14 @@
 #include "websocket.h"
-
+#ifdef _MSC_VER 
+#define strcasecmp _stricmp
+#endif
 
 int32_t parse_websocket_request(const char *s_req, ws_req_t *ws_req) {
 	if (!s_req || !ws_req) {
 		return -1;
 	}
 	int len = strlen(s_req);
-	char tmp[len + 1];
+	char* tmp = (char*)malloc(len + 1);
 	tmp[len] = 0;
 	memcpy(tmp, s_req, len);
 
@@ -52,6 +54,7 @@ int32_t parse_websocket_request(const char *s_req, ws_req_t *ws_req) {
 			}
 		}
 	}
+	free(tmp);
 	return 0;
 }
 

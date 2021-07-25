@@ -146,7 +146,7 @@ void response_write_cb(struct bufferevent *bev, void *ctx) {
 
 
 //send a frame
-inline int32_t send_a_frame(ws_conn_t *conn, const frame_buffer_t *fb) {
+int32_t send_a_frame(ws_conn_t *conn, const frame_buffer_t *fb) {
 	return bufferevent_write(conn->bev, fb->data, fb->len);
 }
 
@@ -176,7 +176,7 @@ void frame_read_cb(struct bufferevent *bev, void *ctx) {
 	case ONE:
 		{
 			LOG("---- STEP 1 ----");
-			char tmp[conn->ntoread];
+			char* tmp = (char*)malloc(conn->ntoread);
 			bufferevent_read(bev, tmp, conn->ntoread);
 			//parse header
 			if (parse_frame_header(tmp, conn->frame) == 0) {
@@ -201,6 +201,7 @@ void frame_read_cb(struct bufferevent *bev, void *ctx) {
 			}
 			//TODO
 			//validate frame header
+			free(tmp);
 			if (!is_frame_valid(conn->frame)) {
 				return;
 			}
@@ -210,7 +211,7 @@ void frame_read_cb(struct bufferevent *bev, void *ctx) {
 	case TWO:
 		{
 			LOG("---- STEP 2 ----");
-			char tmp[conn->ntoread];
+			char* tmp = (char*)malloc(conn->ntoread);
 			bufferevent_read(bev, tmp, conn->ntoread);
 			if (conn->frame->payload_len == 126) {
 				conn->frame->payload_len = ntohs(*(uint16_t*)tmp);
@@ -219,6 +220,7 @@ void frame_read_cb(struct bufferevent *bev, void *ctx) {
 				conn->frame->payload_len = myntohll(*(uint64_t*)tmp);
 				LOG("PAYLOAD_LEN = %llu", conn->frame->payload_len);
 			}
+			free(tmp);
 			conn->step = THREE;
 			conn->ntoread = 4;
 			bufferevent_setwatermark(bev, EV_READ, conn->ntoread, conn->ntoread);
@@ -228,7 +230,7 @@ void frame_read_cb(struct bufferevent *bev, void *ctx) {
 	case THREE:
 		{
 			LOG("---- STEP 3 ----");
-			char tmp[conn->ntoread];
+			char* tmp = (char*)malloc(conn->ntoread);
 			bufferevent_read(bev, tmp, conn->ntoread);
 			memcpy(conn->frame->masking_key, tmp, conn->ntoread);
 			if (conn->frame->payload_len > 0) {
@@ -274,6 +276,7 @@ void frame_read_cb(struct bufferevent *bev, void *ctx) {
 				conn->ntoread = 2;
 				bufferevent_setwatermark(bev, EV_READ, conn->ntoread, conn->ntoread);
 			}
+			free(tmp);
 			break;
 		}
 

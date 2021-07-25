@@ -15,7 +15,7 @@
 using namespace std;
 
 
-#define LOG(format, args...) fprintf(stdout, format"\n", ##args)
+#define LOG(format, ...) fprintf(stdout, format"\n", ## __VA_ARGS__)
 
 
 inline uint16_t myhtons(uint16_t n) {
