@@ -15,8 +15,14 @@
 #include "event2/event.h"
 #include "event2/listener.h"
 #include "event2/bufferevent.h"
+#ifdef WIN32
+#include <windows.h>
+#include <winsock2.h>
+#pragma comment(lib, "ws2_32.lib")
+#else
 #include <sys/socket.h>
 #include <netinet/in.h>
+#endif
 #include <assert.h>
 #include <signal.h>
 #include <iostream>

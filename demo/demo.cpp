@@ -11,7 +11,7 @@ static const uint32_t WS_REQ_ONCE_READ = 1;
 //static const uint64_t MAX_MSG_LEN = 1024000;
 
 
-#define LOG(format, args...) fprintf(stdout, format"\n", ##args)
+#define LOG(format, ...) fprintf(stdout, format"\n", ## __VA_ARGS__)
 
 
 void user_disconnect(user_t *user) {
@@ -54,12 +54,29 @@ void listencb(struct evconnlistener *listener, evutil_socket_t clisockfd, struct
 
 
 int main() {
+#ifdef WIN32
+	WORD wVersionRequested;
+	WSADATA wsaData;
+	int err;
+
+	/* Use the MAKEWORD(lowbyte, highbyte) macro declared in Windef.h */
+	wVersionRequested = MAKEWORD(2, 2);
+
+	err = WSAStartup(wVersionRequested, &wsaData);
+	if (err != 0) {
+		/* Tell the user that we could not find a usable */
+		/* Winsock DLL.                                  */
+		printf("WSAStartup failed with error: %d\n", err);
+	}
+
+#else
 	//SIGPIPE ignore
 	struct sigaction act;
 	act.sa_handler = SIG_IGN;
 	if (sigaction(SIGPIPE, &act, NULL) == 0) {
 		LOG("SIGPIPE ignore");
 	}
+#endif
 
 	//initialize
 	setbuf(stdout, NULL);
